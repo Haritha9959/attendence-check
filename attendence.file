@@ -1,0 +1,71 @@
+import pandas as pd
+import os
+
+folder_path = "attendance"
+
+attendance = {}
+total_days = 0
+
+for file in os.listdir(folder_path):
+
+    if file.endswith(".csv"):
+
+        total_days += 1
+
+        df = pd.read_csv(os.path.join(folder_path, file))
+
+        # Sum durations for students who rejoined
+        daily_duration = df.groupby("Name (original name)")["Duration (minutes).1"].sum()
+
+        for name, duration in daily_duration.items():
+
+            # Skip host
+            if "(Host)" in str(name):
+                continue
+
+            if name not in attendance:
+                attendance[name] = 0
+
+            if duration >= 90:
+                attendance[name] += 1
+
+result = []
+
+for name, present_days in attendance.items():
+
+    attendance_percentage = (present_days / total_days) * 100
+
+    certificate = (
+        "Allocated"
+        if attendance_percentage >= 80
+        else "Not Allocated"
+    )
+
+    result.append([
+        name,
+        present_days,
+        total_days,
+        round(attendance_percentage, 2),
+        certificate
+    ])
+
+summary = pd.DataFrame(
+    result,
+    columns=[
+        "Student Name",
+        "Present Days",
+        "Total Days",
+        "Attendance %",
+        "Certificate"
+    ]
+)
+
+summary = summary.sort_values(
+    by="Attendance %",
+    ascending=False
+)
+
+summary.to_csv("attendance_summary.csv", index=False)
+
+print(summary)
+print("\nattendance_summary.csv generated successfully!")
